@@ -6,7 +6,7 @@ CREATE TABLE public.wishes (
                                created_at TIMESTAMPTZ  DEFAULT now() NOT NULL
 );
 
--- Index: every page load queries wishes by time (newest first)
+-- Index: every page load queries wishes by time 
 CREATE INDEX idx_wishes_time ON public.wishes(created_at DESC);
 
 -- Row Level Security
@@ -25,10 +25,6 @@ CREATE POLICY "wishes_public_insert"
     char_length(trim(message)) BETWEEN 5 AND 280
   );
 
--- No UPDATE or DELETE allowed (no policy = blocked)
-
-
--- ── TABLE 2: SALAMIS ────────────────────────────────────
 CREATE TABLE public.salamis (
                                 id         UUID         DEFAULT gen_random_uuid() PRIMARY KEY,
                                 name       VARCHAR(50)  NOT NULL CHECK (char_length(trim(name)) >= 2),

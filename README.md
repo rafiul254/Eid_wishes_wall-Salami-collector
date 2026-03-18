@@ -7,7 +7,7 @@
 
 **A real-time public Eid celebration platform — community wishes wall with a digital Salami leaderboard.**
 
-[🌐 Live Demo](#) 
+[🌐 Live Demo](eid-wishes-wall-salami-collector.vercel.app) 
 
 </div>
 

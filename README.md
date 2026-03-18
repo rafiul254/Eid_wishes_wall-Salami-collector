@@ -4,8 +4,6 @@
 
 ![Eid Mubarak](https://img.shields.io/badge/Eid-Mubarak%20%F0%9F%8C%99-gold?style=for-the-badge&labelColor=0d0d30&color=f0c040)
 ![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge&labelColor=0d0d30)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&labelColor=0d0d30)
-![Made in Bangladesh](https://img.shields.io/badge/Made%20in-Bangladesh%20%F0%9F%87%A7%F0%9F%87%A9-green?style=for-the-badge&labelColor=0d0d30)
 
 **A real-time public Eid celebration platform — community wishes wall with a digital Salami leaderboard.**
 

@@ -132,7 +132,6 @@
                 <select id="s-method" class="field-input field-select">
                     <option value="bKash">bKash</option>
                     <option value="Nagad">Nagad</option>
-                    <option value="Rocket">Rocket</option>
                     <option value="Cash">Cash (in person)</option>
                     <option value="Other">Other</option>
                 </select>
@@ -210,23 +209,18 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    // ╔══════════════════════════════════════════════╗
-    // ║  ⚠️  শুধু এই ৪টা value বদলাও               ║
-    // ╚══════════════════════════════════════════════╝
-    const SUPABASE_URL  = 'https://oxazgybmsvksmnxuhyzb.supabase.co';
-    const SUPABASE_ANON = 'sb_publishable_G_goKsPSWFLb50TKkD-bvg_ZixUZ_bv';
-    const BKASH_NUMBER  = '01749534924';
-    const NAGAD_NUMBER  = '01749534924';
-    // ════════════════════════════════════════════════
 
-    // Supabase init
+const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON = 'YOUR_ANON_KEY';
+const BKASH_NUMBER  = 'YOUR_BKASH_NUMBER';
+const NAGAD_NUMBER  = 'YOUR_NAGAD_NUMBER';
+
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // Constants
+  
     const THEMES = ['gold','emerald','purple','crimson','teal','rose'];
     const ICONS  = { gold:'🌙', emerald:'🕌', purple:'✨', crimson:'🌸', teal:'⭐', rose:'🌺' };
 
-    // ── Helpers ──────────────────────────────────────
     function timeAgo(ts) {
         const d = Date.now() - ts;
         if (d < 60000)    return 'just now';
@@ -256,7 +250,6 @@
         if (msg) setTimeout(() => { el.textContent = ''; }, 3500);
     }
 
-    // ── Stars ─────────────────────────────────────────
     function initStars() {
         const c = document.getElementById('stars-canvas');
         const x = c.getContext('2d');
@@ -284,7 +277,6 @@
         window.addEventListener('resize', resize, {passive:true});
     }
 
-    // ── Particles ─────────────────────────────────────
     const EM = ['🏮','🌙','✨','⭐','🕌','🌸','🌿'];
     function spawn() {
         const e = document.createElement('span');
@@ -295,7 +287,6 @@
         setTimeout(() => e.remove(), 44000);
     }
 
-    // ── Copy number ───────────────────────────────────
     function copyNumber(num, brand) {
         const hid = brand === 'bKash' ? 'bkash-hint' : 'nagad-hint';
         const h   = document.getElementById(hid);
@@ -310,7 +301,6 @@
         }
     }
 
-    // ── Wish card builder ─────────────────────────────
     function wishCard(w, delay) {
         const el  = document.createElement('div');
         const ts  = new Date(w.created_at || Date.now()).getTime();
@@ -328,7 +318,6 @@
         return el;
     }
 
-    // ── Load & subscribe wishes ───────────────────────
     async function loadWishes() {
         const { data, error } = await sb.from('wishes')
             .select('id,name,message,theme,created_at')
@@ -356,7 +345,6 @@
         }).subscribe();
     }
 
-    // ── Submit wish ───────────────────────────────────
     async function handleWishSubmit() {
         const name = document.getElementById('w-name').value.trim();
         const msg  = document.getElementById('w-msg').value.trim();
@@ -386,7 +374,6 @@
         btn.disabled=false; btn.textContent='🌙 Share Eid Wish';
     }
 
-    // ── Tier helper ───────────────────────────────────
     function tier(amt) {
         if (amt>=500) return {l:'🥇 Gold',   c:'tier-badge-gold'  };
         if (amt>=200) return {l:'🥈 Silver', c:'tier-badge-silver'};
@@ -394,7 +381,6 @@
         return null;
     }
 
-    // ── Leaderboard ───────────────────────────────────
     async function loadLeaderboard() {
         const { data, error } = await sb.from('salamis')
             .select('id,name,amount,method,created_at')
@@ -421,7 +407,7 @@
                 '</div>';
             board.appendChild(row);
         });
-        // stats
+      
         const total = data.reduce((s,e)=>s+e.amount,0);
         document.getElementById('stat-total').textContent='৳ '+total.toLocaleString();
         document.getElementById('stat-avg').textContent='৳ '+Math.round(total/data.length).toLocaleString();
@@ -432,7 +418,7 @@
         sb.channel('s-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'salamis'}, async()=>{ await loadLeaderboard(); }).subscribe();
     }
 
-    // ── Submit salami ─────────────────────────────────
+   
     async function handleSalamiSubmit() {
         const name   = document.getElementById('s-name').value.trim();
         const amount = parseInt(document.getElementById('s-amount').value,10);
@@ -458,24 +444,21 @@
         btn.disabled=false; btn.textContent='🎊 Confirm Salami Sent';
         await loadLeaderboard();
     }
-
-    // ── Timestamp refresh ─────────────────────────────
     setInterval(() => {
         document.querySelectorAll('[data-ts]').forEach(el => { el.textContent=timeAgo(Number(el.dataset.ts)); });
     }, 60000);
 
-    // ── BOOT ─────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        // Payment numbers
+       
         document.getElementById('bkash-num').textContent = BKASH_NUMBER;
         document.getElementById('nagad-num').textContent = NAGAD_NUMBER;
 
-        // Visual
+       
         initStars();
         for(let i=0;i<10;i++) setTimeout(spawn, i*1600);
         setInterval(spawn, 4500);
 
-        // Char counter
+      
         document.getElementById('w-msg').addEventListener('input', function() {
             const n = this.value.length;
             const el = document.getElementById('w-char');
@@ -483,16 +466,16 @@
             el.classList.toggle('warn', n > 250);
         });
 
-        // Enter: name → message
+       
         document.getElementById('w-name').addEventListener('keydown', e => {
             if (e.key==='Enter') document.getElementById('w-msg').focus();
         });
 
-        // Sticky nav
+      
         const nav = document.getElementById('sticky-nav');
         window.addEventListener('scroll', () => { nav.classList.toggle('nav-visible', window.scrollY>320); }, {passive:true});
 
-        // Data
+       
         loadWishes();
         subscribeWishes();
         loadLeaderboard();

@@ -1,11 +1,3 @@
-# ═══════════════════════════════════════
-#  .gitignore — Eid Wishes Wall project
-# ═══════════════════════════════════════
-
-# ⚠️  CRITICAL — never commit this file!
-#  It contains your Supabase keys.
-js/config.js
-
 # Environment variables
 .env
 .env.local

@@ -6,18 +6,14 @@ CREATE TABLE public.wishes (
                                created_at TIMESTAMPTZ  DEFAULT now() NOT NULL
 );
 
--- Index: every page load queries wishes by time 
 CREATE INDEX idx_wishes_time ON public.wishes(created_at DESC);
 
--- Row Level Security
 ALTER TABLE public.wishes ENABLE ROW LEVEL SECURITY;
 
--- Anyone can read all wishes
 CREATE POLICY "wishes_public_read"
   ON public.wishes FOR SELECT
                                   USING (true);
 
--- Anyone can insert, but the database enforces length constraints
 CREATE POLICY "wishes_public_insert"
   ON public.wishes FOR INSERT
   WITH CHECK (
@@ -33,12 +29,10 @@ CREATE TABLE public.salamis (
                                 created_at TIMESTAMPTZ  DEFAULT now() NOT NULL
 );
 
--- Index: leaderboard queries by amount descending
 CREATE INDEX idx_salamis_amount ON public.salamis(amount DESC);
--- Index: real-time subscription filters by time
+
 CREATE INDEX idx_salamis_time   ON public.salamis(created_at DESC);
 
--- Row Level Security
 ALTER TABLE public.salamis ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "salamis_public_read"

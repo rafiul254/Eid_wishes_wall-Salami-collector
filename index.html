@@ -191,7 +191,6 @@
         <select id="s-method" class="field-input field-select">
           <option value="bKash">bKash</option>
           <option value="Nagad">Nagad</option>
-          <option value="Rocket">Rocket</option>
           <option value="Cash">Cash (in person)</option>
           <option value="Other">Other</option>
         </select>
@@ -398,9 +397,7 @@ function openPayApp(brand) {
       ? 'intent://send?to=' + num + '&amount=' + amount + '#Intent;scheme=bkash;package=com.bKash.customerapp;end'
       : 'bkash://send?to=' + num + '&amount=' + amount;
   } else {
-    deepLink = isAndroid
-      ? 'intent://send?to=' + num + '&amount=' + amount + '#Intent;scheme=nagad;package=com.nagad.mfs;end'
-      : 'nagad://send?to=' + num + '&amount=' + amount;
+    deepLink = 'nagad://send?to=' + num + '&amount=' + amount;
   }
   window.location.href = deepLink;
   setTimeout(() => {

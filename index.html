@@ -313,9 +313,9 @@
 const SUPABASE_URL  = 'https://oxazgybmsvksmnxuhyzb.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_G_goKsPSWFLb50TKkD-bvg_ZixUZ_bv';
 
-/* CHANGE 1: const → let so URL params can override these */
 let BKASH_NUMBER = '01749534924';
 let NAGAD_NUMBER = '01749534924';
+let HOST_ID      = 'default';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -502,6 +502,7 @@ async function loadWishes() {
   const { data, error } = await sb
     .from('wishes')
     .select('id,name,message,theme,created_at')
+    .eq('host_id', HOST_ID)
     .order('created_at', { ascending: false })
     .limit(60);
   const grid = document.getElementById('wishes-grid');
@@ -525,8 +526,11 @@ function updateWC(n) {
 }
 
 function subscribeWishes() {
-  sb.channel('w-rt')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wishes' }, p => {
+  sb.channel('w-rt-' + HOST_ID)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'wishes',
+      filter: 'host_id=eq.' + HOST_ID
+    }, p => {
       const w = p.new;
       if (document.querySelector('.lantern-card[data-id="' + w.id + '"]')) return;
       const grid = document.getElementById('wishes-grid');
@@ -546,7 +550,7 @@ async function handleWishSubmit() {
   if (name.length < 2) return setErr('w-error', 'Name must be at least 2 characters.');
   if (!msg)            return setErr('w-error', 'Please write your Eid wish.');
   if (msg.length < 5)  return setErr('w-error', 'Message too short — share a real wish! 🌙');
-  const RL = 'eid_wish_ts', W = 300000;
+  const RL = 'eid_wish_' + HOST_ID, W = 300000;
   const lt = localStorage.getItem(RL);
   if (lt && Date.now() - Number(lt) < W) {
     const r = Math.ceil((W - (Date.now() - Number(lt))) / 60000);
@@ -556,7 +560,10 @@ async function handleWishSubmit() {
   btn.textContent = '⏳ Sending…';
   setErr('w-error', '');
   const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
-  const { data, error } = await sb.from('wishes').insert([{ name, message: msg, theme }]).select().single();
+  const { data, error } = await sb
+    .from('wishes')
+    .insert([{ name, message: msg, theme, host_id: HOST_ID }])
+    .select().single();
   if (error) {
     setErr('w-error', 'Something went wrong. Try again.');
     btn.disabled = false;
@@ -588,6 +595,7 @@ async function loadLeaderboard() {
   const { data, error } = await sb
     .from('salamis')
     .select('id,name,amount,method,created_at')
+    .eq('host_id', HOST_ID)
     .order('amount', { ascending: false })
     .limit(25);
   const board = document.getElementById('leaderboard');
@@ -627,8 +635,11 @@ async function loadLeaderboard() {
 }
 
 function subscribeSalami() {
-  sb.channel('s-rt')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'salamis' }, async () => {
+  sb.channel('s-rt-' + HOST_ID)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'salamis',
+      filter: 'host_id=eq.' + HOST_ID
+    }, async () => {
       await loadLeaderboard();
     })
     .subscribe();
@@ -644,7 +655,7 @@ async function handleSalamiSubmit() {
   if (!amount || isNaN(amount)) return setErr('s-error', 'Please enter the amount.');
   if (amount < 10)           return setErr('s-error', 'Minimum salami is ৳10.');
   if (amount > 50000)        return setErr('s-error', 'Maximum is ৳50,000.');
-  const RL = 'eid_salami_ts', W = 600000;
+  const RL = 'eid_salami_' + HOST_ID, W = 600000;
   const lt = localStorage.getItem(RL);
   if (lt && Date.now() - Number(lt) < W) {
     const r = Math.ceil((W - (Date.now() - Number(lt))) / 60000);
@@ -653,7 +664,9 @@ async function handleSalamiSubmit() {
   btn.disabled    = true;
   btn.textContent = '⏳ Confirming…';
   setErr('s-error', '');
-  const { error } = await sb.from('salamis').insert([{ name, amount, method }]);
+  const { error } = await sb
+    .from('salamis')
+    .insert([{ name, amount, method, host_id: HOST_ID }]);
   if (error) {
     setErr('s-error', 'Something went wrong. Try again.');
     btn.disabled    = false;
@@ -677,14 +690,12 @@ setInterval(() => {
 }, 60000);
 
 document.addEventListener('DOMContentLoaded', () => {
-
-  /* CHANGE 2: Read URL params — if someone opens a friend's wall link,
-     their name and payment numbers load automatically */
   const p = new URLSearchParams(window.location.search);
-  if (p.get('b') && p.get('n')) {
+  if (p.get('h') && p.get('b') && p.get('n')) {
+    HOST_ID      = p.get('h');
     BKASH_NUMBER = p.get('b');
     NAGAD_NUMBER = p.get('n');
-    const pName = p.get('name');
+    const pName  = p.get('name');
     if (pName) {
       document.querySelector('.eid-tagline').textContent =
         'Send your Eid wishes & Salami to ' + pName + ' 🌙';

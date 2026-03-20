@@ -32,7 +32,7 @@
         <label class="field-label" for="setup-nagad">Your Nagad Number</label>
         <input type="tel" id="setup-nagad" class="field-input" placeholder="e.g. 01712345678" maxlength="15"/>
       </div>
-      <button class="btn-primary btn-gold" onclick="createWall()">🌙 Create My Eid Wall</button>
+      <button class="btn-primary btn-gold" id="setup-btn" onclick="createWall()">🌙 Create My Eid Wall</button>
       <p class="field-error" id="setup-error"></p>
       <p class="setup-note">A unique link will be created — share it with everyone!</p>
     </div>
@@ -120,8 +120,8 @@
     </div>
     <div class="field">
       <label class="field-label" for="w-msg">Your Eid Wish</label>
-      <textarea id="w-msg" class="field-input field-textarea" placeholder="Write your Eid wish here…" maxlength="280"></textarea>
-      <div class="char-row" id="w-char">0 / 280</div>
+      <textarea id="w-msg" class="field-input field-textarea" placeholder="Write your Eid wish here…" maxlength="500"></textarea>
+      <div class="char-row" id="w-char">0 / 500</div>
     </div>
     <button class="btn-primary" id="w-btn" onclick="handleWishSubmit()">🌙 Share Eid Wish</button>
     <p class="field-error" id="w-error"></p>
@@ -192,12 +192,12 @@
   <div class="manual-copy-row">
     <p class="manual-copy-label">Or copy number manually:</p>
     <div class="manual-copy-btns">
-      <button class="copy-pill bkash-pill" onclick="copyNumber(BKASH_NUMBER,'bKash')">
+      <button class="copy-pill bkash-pill" onclick="copyNumber('bKash')">
         <span>bKash</span>
         <span id="bkash-num" class="copy-num">—</span>
         <span id="bkash-hint" class="copy-icon">📋</span>
       </button>
-      <button class="copy-pill nagad-pill" onclick="copyNumber(NAGAD_NUMBER,'Nagad')">
+      <button class="copy-pill nagad-pill" onclick="copyNumber('Nagad')">
         <span>Nagad</span>
         <span id="nagad-num" class="copy-num">—</span>
         <span id="nagad-hint" class="copy-icon">📋</span>
@@ -330,20 +330,38 @@ function slugify(str) {
     .substring(0, 30);
 }
 
-function createWall() {
-  const name  = document.getElementById('setup-name').value.trim();
-  const bkash = document.getElementById('setup-bkash').value.trim();
-  const nagad = document.getElementById('setup-nagad').value.trim();
+async function createWall() {
+  const name   = document.getElementById('setup-name').value.trim();
+  const bkash  = document.getElementById('setup-bkash').value.trim();
+  const nagad  = document.getElementById('setup-nagad').value.trim();
+  const btn    = document.getElementById('setup-btn');
   if (!name)             return setErr('setup-error', 'Please enter your name.');
   if (!bkash)            return setErr('setup-error', 'Please enter your bKash number.');
   if (!nagad)            return setErr('setup-error', 'Please enter your Nagad number.');
   if (bkash.length < 11) return setErr('setup-error', 'bKash number seems too short.');
   if (nagad.length < 11) return setErr('setup-error', 'Nagad number seems too short.');
-  const slug = slugify(name);
+  let slug = slugify(name);
   if (!slug) return setErr('setup-error', 'Name must contain letters.');
-  const base   = window.location.origin + window.location.pathname;
-  const params = new URLSearchParams({ h: slug, name: name, b: bkash, n: nagad });
-  const link   = base + '?' + params.toString();
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Creating…';
+  setErr('setup-error', '');
+
+  const existing = await sb.from('hosts').select('slug').eq('slug', slug).single();
+  if (existing.data) {
+    slug = slug + '-' + Date.now().toString().slice(-4);
+  }
+
+  const { error } = await sb.from('hosts').insert([{ slug, name, bkash, nagad }]);
+  if (error) {
+    setErr('setup-error', 'Something went wrong. Try again.');
+    btn.disabled = false;
+    btn.textContent = '🌙 Create My Eid Wall';
+    return;
+  }
+
+  const base = window.location.origin + window.location.pathname;
+  const link = base + '?h=' + slug;
   navigator.clipboard.writeText(link).catch(() => {});
   window.location.href = link;
 }
@@ -460,14 +478,15 @@ function openPayApp(brand) {
   window.location.href = deepLink;
   setTimeout(() => {
     if (!document.hidden) {
-      copyNumber(num, brand);
+      copyNumber(brand);
       showToast('App not found — number copied!');
     }
   }, 1800);
   showToast('Opening ' + brand + ' app… ৳' + amount);
 }
 
-function copyNumber(num, brand) {
+function copyNumber(brand) {
+  const num    = brand === 'bKash' ? BKASH_NUMBER : NAGAD_NUMBER;
   const hintId = brand === 'bKash' ? 'bkash-hint' : 'nagad-hint';
   const hint   = document.getElementById(hintId);
   if (navigator.clipboard) {
@@ -689,38 +708,49 @@ setInterval(() => {
   });
 }, 60000);
 
-document.addEventListener('DOMContentLoaded', () => {
-  const p = new URLSearchParams(window.location.search);
-  if (p.get('h') && p.get('b') && p.get('n')) {
-    HOST_ID      = p.get('h');
-    BKASH_NUMBER = p.get('b');
-    NAGAD_NUMBER = p.get('n');
-    const pName  = p.get('name');
-    if (pName) {
+async function bootApp() {
+  initStars();
+  for (let i = 0; i < 10; i++) setTimeout(spawn, i * 1600);
+  setInterval(spawn, 4500);
+
+  const p    = new URLSearchParams(window.location.search);
+  const slug = p.get('h');
+
+  if (slug) {
+    const { data, error } = await sb
+      .from('hosts')
+      .select('slug, name, bkash, nagad')
+      .eq('slug', slug)
+      .single();
+
+    if (error || !data) {
       document.querySelector('.eid-tagline').textContent =
-        'Send your Eid wishes & Salami to ' + pName + ' 🌙';
-      document.querySelector('.creator-name').textContent = pName;
+        'Wall not found. Create your own below! 🌙';
+      HOST_ID = slug;
+    } else {
+      HOST_ID      = data.slug;
+      BKASH_NUMBER = data.bkash;
+      NAGAD_NUMBER = data.nagad;
+      document.querySelector('.eid-tagline').textContent =
+        'Send your Eid wishes & Salami to ' + data.name + ' 🌙';
+      document.querySelector('.creator-name').textContent = data.name;
       document.querySelector('.creator-avatar').textContent =
-        pName.charAt(0).toUpperCase();
-      document.title = 'Eid Wishes for ' + pName + ' 🌙';
+        data.name.charAt(0).toUpperCase();
+      document.title = 'Eid Wishes for ' + data.name + ' 🌙';
+      const shareBox = document.createElement('div');
+      shareBox.style.cssText = 'text-align:center;margin-top:14px';
+      shareBox.innerHTML =
+        '<p style="font-size:.75rem;color:var(--text-faint);margin-bottom:8px">Your wall link — share this!</p>' +
+        '<button onclick="navigator.clipboard.writeText(window.location.href).then(()=>showToast(\'🔗 Link copied!\'))" ' +
+        'style="background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.25);color:var(--gold);' +
+        'padding:8px 20px;border-radius:50px;cursor:pointer;font-family:Tajawal,sans-serif;font-size:.82rem">' +
+        '📋 Copy My Wall Link</button>';
+      document.querySelector('.counters-row').after(shareBox);
     }
-    const shareBox = document.createElement('div');
-    shareBox.style.cssText = 'text-align:center;margin-top:14px';
-    shareBox.innerHTML =
-      '<p style="font-size:.75rem;color:var(--text-faint);margin-bottom:8px">Your wall link — share this!</p>' +
-      '<button onclick="navigator.clipboard.writeText(window.location.href).then(()=>showToast(\'🔗 Link copied!\'))" ' +
-      'style="background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.25);color:var(--gold);' +
-      'padding:8px 20px;border-radius:50px;cursor:pointer;font-family:Tajawal,sans-serif;font-size:.82rem">' +
-      '📋 Copy My Wall Link</button>';
-    document.querySelector('.counters-row').after(shareBox);
   }
 
   document.getElementById('bkash-num').textContent = BKASH_NUMBER;
   document.getElementById('nagad-num').textContent = NAGAD_NUMBER;
-
-  initStars();
-  for (let i = 0; i < 10; i++) setTimeout(spawn, i * 1600);
-  setInterval(spawn, 4500);
 
   document.getElementById('w-msg').addEventListener('input', function () {
     const n  = this.value.length;
@@ -742,7 +772,9 @@ document.addEventListener('DOMContentLoaded', () => {
   subscribeWishes();
   loadLeaderboard();
   subscribeSalami();
-});
+}
+
+document.addEventListener('DOMContentLoaded', bootApp);
 </script>
 </body>
 </html>
